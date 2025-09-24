@@ -106,41 +106,43 @@ class INCIParser:
         Returns:
             List of (ingredient_name, estimated_concentration) tuples
         """
-        # Clean and split the INCI string
-        ingredients = [ing.strip().upper() for ing in inci_string.split(',')]
+        # Handle empty string
+        if not inci_string or not inci_string.strip():
+            raise ValueError("Empty INCI list")
         
-        # Estimate concentrations based on position and regulatory knowledge
+        # Clean and split the INCI string (optimized)
+        ingredients = [ing.strip().upper() for ing in inci_string.split(',') if ing.strip()]
+        
+        if not ingredients:
+            raise ValueError("No valid ingredients found")
+        
+        # Pre-calculate all concentrations for better performance
         estimated_concentrations = []
+        
+        # Fast concentration estimation using pre-calculated decay factors
+        decay_factors = [0.6 ** i for i in range(len(ingredients))]
+        base_concentrations = [60.0, 15.0, 8.0, 5.0, 3.0, 2.0, 1.5, 1.0, 0.8, 0.5]
+        
         total_estimated = 0.0
         
         for i, ingredient in enumerate(ingredients):
-            # Base concentration estimation using exponential decay
-            if i == 0:  # First ingredient (usually water)
-                concentration = 60.0 if ingredient in ['AQUA', 'WATER'] else 30.0
-            elif i == 1:
-                concentration = 15.0
-            elif i == 2:
-                concentration = 8.0
-            elif i < 5:
-                concentration = 5.0 - (i - 3) * 1.0
-            elif i < 10:
-                concentration = 2.0 - (i - 5) * 0.3
+            if i == 0 and ingredient in ['AQUA', 'WATER']:
+                concentration = 60.0
+            elif i < len(base_concentrations):
+                concentration = base_concentrations[i]
             else:
-                concentration = max(0.1, 1.0 - (i - 10) * 0.1)
-            
-            # Apply regulatory limits
-            if ingredient in self.eu_limits:
-                concentration = min(concentration, self.eu_limits[ingredient])
+                # For ingredients beyond the base list, use exponential decay
+                concentration = max(0.1, 2.0 * decay_factors[min(i, len(decay_factors)-1)])
             
             estimated_concentrations.append((ingredient, concentration))
             total_estimated += concentration
         
-        # Normalize to ensure total doesn't exceed 100%
-        if total_estimated > 100.0:
-            normalization_factor = 95.0 / total_estimated  # Leave 5% for unlisted
+        # Fast normalization to 100%
+        if total_estimated > 0 and abs(total_estimated - 100.0) > 0.1:
+            normalization_factor = 100.0 / total_estimated
             estimated_concentrations = [
-                (ing, conc * normalization_factor) 
-                for ing, conc in estimated_concentrations
+                (ingredient, conc * normalization_factor) 
+                for ingredient, conc in estimated_concentrations
             ]
         
         return estimated_concentrations
@@ -349,28 +351,118 @@ class INCISearchSpaceReducer:
         return viable
     
     def estimate_absolute_concentrations(self, inci_list: str, 
-                                       total_volume_ml: float = 100.0) -> Dict[str, float]:
+                                       total_volume: float = 100.0) -> Dict[str, float]:
         """
-        Estimate absolute concentrations from INCI ordering
+        Estimate absolute concentrations from INCI ordering and regulatory constraints
+        
+        Args:
+            inci_list: INCI string with ingredients in descending concentration order
+            total_volume: Total formulation volume for normalization
+            
+        Returns:
+            Dictionary mapping ingredient names to estimated concentrations (%)
+        """
+        
+        parsed_ingredients = self.parser.parse_inci_list(inci_list)
+        
+        if not parsed_ingredients:
+            return {}
+        
+        concentrations = {}
+        
+        # Handle single ingredient case
+        if len(parsed_ingredients) == 1:
+            ingredient_name, _ = parsed_ingredients[0]
+            concentrations[ingredient_name] = total_volume
+            return concentrations
+        
+        # Use exponential decay model based on INCI ordering
+        # First ingredient gets largest share, then exponential decay
+        
+        remaining_volume = total_volume
+        
+        for i, (ingredient_name, _) in enumerate(parsed_ingredients):
+            if i == 0:
+                # First ingredient: typically 40-70% depending on type
+                if ingredient_name == 'AQUA':
+                    estimated_conc = min(70.0, remaining_volume * 0.65)
+                else:
+                    estimated_conc = min(50.0, remaining_volume * 0.50)
+            else:
+                # Subsequent ingredients: exponential decay
+                decay_factor = 0.6 ** i  # Stronger decay for later ingredients
+                max_remaining = remaining_volume * 0.8  # Leave some for later ingredients
+                estimated_conc = max_remaining * decay_factor
+                
+                # Minimum meaningful concentration
+                if estimated_conc < 0.1:
+                    estimated_conc = max(0.1, remaining_volume / (len(parsed_ingredients) - i))
+            
+            concentrations[ingredient_name] = estimated_conc
+            remaining_volume -= estimated_conc
+            
+            if remaining_volume <= 0:
+                break
+        
+        # Handle any remaining volume
+        if remaining_volume > 0 and len(concentrations) > 0:
+            # Distribute proportionally among existing ingredients
+            total_current = sum(concentrations.values())
+            for ingredient in concentrations:
+                concentrations[ingredient] += remaining_volume * (concentrations[ingredient] / total_current)
+        
+        # Final normalization to ensure total = 100%
+        total_estimated = sum(concentrations.values())
+        if total_estimated > 0 and abs(total_estimated - total_volume) > 0.1:
+            normalization_factor = total_volume / total_estimated
+            for ingredient in concentrations:
+                concentrations[ingredient] *= normalization_factor
+        
+        return concentrations
+    
+    def check_regulatory_compliance(self, inci_list: str, region: RegionType) -> Dict:
+        """
+        Check regulatory compliance for a formulation in specific region
         
         Args:
             inci_list: INCI ingredient list
-            total_volume_ml: Total formulation volume
+            region: Regulatory region to check against
             
         Returns:
-            Dictionary mapping ingredient names to absolute concentrations (g)
+            Dictionary with compliance status and any issues
         """
-        relative_concentrations = self.parser.parse_inci_list(inci_list)
-        absolute_concentrations = {}
         
-        # Assume density of ~1.0 g/ml for simplicity
-        total_mass_g = total_volume_ml * 1.0
+        parsed_ingredients = self.parser.parse_inci_list(inci_list)
+        estimated_concentrations = self.estimate_absolute_concentrations(inci_list)
         
-        for ingredient, rel_conc in relative_concentrations:
-            absolute_conc = (rel_conc / 100.0) * total_mass_g
-            absolute_concentrations[ingredient] = absolute_conc
+        compliance_result = {
+            'compliant': True,
+            'issues': [],
+            'warnings': []
+        }
         
-        return absolute_concentrations
+        for ingredient_name, concentration in estimated_concentrations.items():
+            # Check against ingredient database limits
+            if ingredient_name in self.ingredient_database:
+                ingredient_info = self.ingredient_database[ingredient_name]
+                
+                # Check concentration limits for the region
+                max_allowed = ingredient_info.max_concentration.get(region, float('inf'))
+                
+                if concentration > max_allowed:
+                    issue = f"{ingredient_name} concentration {concentration:.1f}% exceeds {region.value} limit {max_allowed}%"
+                    compliance_result['issues'].append(issue)
+                    compliance_result['compliant'] = False
+                
+                # Check restrictions
+                restrictions = ingredient_info.restrictions.get(region, [])
+                for restriction in restrictions:
+                    if 'prohibited' in restriction.lower():
+                        issue = f"{ingredient_name} is prohibited in {region.value}: {restriction}"
+                        compliance_result['issues'].append(issue)
+                        compliance_result['compliant'] = False
+        
+        return compliance_result
 
 # Performance monitoring and statistics
 class OptimizationMetrics:
