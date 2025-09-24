@@ -310,5 +310,253 @@ def create_integrated_optimization_demo():
     
     return results
 
+def create_deep_atomspace_integration_demo():
+    """
+    🧬 DEEP ATOMSPACE INTEGRATION DEMONSTRATION
+    
+    This demonstration showcases the deepest level of integration between
+    the Hypergredient Framework and OpenCog's AtomSpace reasoning system.
+    
+    Features demonstrated:
+    - AtomSpace knowledge representation of hypergredient data
+    - Pattern-based ingredient compatibility reasoning
+    - Semantic queries for formulation optimization
+    - Bidirectional data flow between systems
+    - Advanced constraint satisfaction with symbolic reasoning
+    """
+    print("🧬 DEEP ATOMSPACE INTEGRATION DEMONSTRATION")
+    print("=" * 65)
+    print("Showcasing the deepest level of hypergredient-AtomSpace integration")
+    print()
+    
+    # Import the deep integration module
+    try:
+        from hypergredient_atomspace import (
+            HypergredientAtomSpaceAdapter, IntegratedHypergredientOptimizer,
+            OPENCOG_AVAILABLE
+        )
+        
+        print("✓ Deep integration modules loaded successfully")
+        
+        if OPENCOG_AVAILABLE:
+            from opencog.atomspace import AtomSpace
+            spa = AtomSpace()
+            print("✓ OpenCog AtomSpace initialized")
+        else:
+            spa = None
+            print("⚠ OpenCog not available - using compatibility mode")
+        
+    except ImportError as e:
+        print(f"⚠ Warning: Could not import deep integration modules: {e}")
+        print("Falling back to standard hypergredient optimization...")
+        return create_integrated_optimization_demo()
+    
+    print()
+    
+    # Step 1: Initialize AtomSpace adapter
+    print("STEP 1: Initializing AtomSpace Adapter")
+    print("-" * 40)
+    
+    adapter = HypergredientAtomSpaceAdapter(spa)
+    
+    if adapter.enabled:
+        print(f"✓ AtomSpace knowledge initialized")
+        print(f"  • Ingredient atoms: {len(adapter.ingredient_atoms)}")
+        print(f"  • Class atoms: {len(adapter.class_atoms)}")
+        print(f"  • Relationship atoms: {len(adapter.relationship_atoms)}")
+    else:
+        print("✓ Compatibility mode adapter initialized")
+    
+    print()
+    
+    # Step 2: Demonstrate AtomSpace queries
+    print("STEP 2: AtomSpace Query Demonstrations")
+    print("-" * 40)
+    
+    from hypergredient_framework import HypergredientClass
+    
+    # Query ingredients by class
+    ct_ingredients = adapter.query_ingredients_by_class(HypergredientClass.CT)
+    cs_ingredients = adapter.query_ingredients_by_class(HypergredientClass.CS)
+    ao_ingredients = adapter.query_ingredients_by_class(HypergredientClass.AO)
+    
+    print(f"Cellular Turnover (H.CT) ingredients: {len(ct_ingredients)}")
+    for ingredient in ct_ingredients[:3]:  # Show first 3
+        print(f"  • {ingredient}")
+    
+    print(f"\nCollagen Synthesis (H.CS) ingredients: {len(cs_ingredients)}")
+    for ingredient in cs_ingredients[:3]:
+        print(f"  • {ingredient}")
+    
+    print(f"\nAntioxidant Systems (H.AO) ingredients: {len(ao_ingredients)}")  
+    for ingredient in ao_ingredients[:3]:
+        print(f"  • {ingredient}")
+    
+    # Query synergistic relationships
+    if ct_ingredients:
+        sample_ingredient = ct_ingredients[0]
+        synergies = adapter.query_synergistic_ingredients(sample_ingredient)
+        print(f"\nSynergistic partners for {sample_ingredient}:")
+        for partner in synergies[:3]:
+            print(f"  • {partner}")
+    
+    print()
+    
+    # Step 3: AtomSpace-enhanced optimization
+    print("STEP 3: AtomSpace-Enhanced Optimization")
+    print("-" * 40)
+    
+    target_concerns = ['wrinkles', 'firmness', 'brightness']
+    skin_type = "normal_to_dry"
+    budget = 1500.0
+    
+    print(f"Target concerns: {target_concerns}")
+    print(f"Skin type: {skin_type}")
+    print(f"Budget: R{budget}")
+    print()
+    
+    # Run AtomSpace optimization
+    atomspace_results = adapter.optimize_formulation_with_atomspace(
+        target_concerns=target_concerns,
+        skin_type=skin_type,
+        budget=budget
+    )
+    
+    print("🏆 ATOMSPACE OPTIMIZATION RESULTS:")
+    print(f"   Total Cost: R{atomspace_results.get('total_cost', 0):.2f}")
+    print(f"   Synergy Score: {atomspace_results.get('synergy_score', 1.0):.2f}")
+    print(f"   Compatibility Score: {atomspace_results.get('compatibility_score', 1.0):.2f}")
+    print(f"   Reasoning Method: {atomspace_results.get('reasoning_method', 'unknown')}")
+    
+    if 'selected_hypergredients' in atomspace_results:
+        print("\n🧪 Selected Ingredients (AtomSpace):")
+        for class_name, ingredient_data in atomspace_results['selected_hypergredients'].items():
+            name = ingredient_data['name']
+            score = ingredient_data['score']
+            cost = ingredient_data['cost']
+            concentration = ingredient_data['concentration']
+            print(f"  • {class_name}: {name}")
+            print(f"    Score: {score:.2f}, Cost: R{cost:.2f}, Concentration: {concentration:.1f}%")
+    
+    print()
+    
+    # Step 4: Integrated optimization comparison
+    print("STEP 4: Integrated Optimization Comparison")
+    print("-" * 40)
+    
+    # Initialize integrated optimizer
+    integrated_optimizer = IntegratedHypergredientOptimizer(spa)
+    
+    # Define multiscale parameters
+    target_profile = {
+        'anti_aging_efficacy': 0.85,
+        'skin_brightness': 0.70,
+        'barrier_function': 0.80,
+        'hydration_level': 0.75
+    }
+    
+    constraints = [
+        FormulationConstraint("AQUA", 40.0, 80.0, required=True),
+        FormulationConstraint("GLYCERIN", 2.0, 10.0, required=True)
+    ]
+    
+    # Run integrated optimization
+    integrated_results = integrated_optimizer.optimize(
+        target_profile=target_profile,
+        constraints=constraints,
+        target_concerns=target_concerns,
+        skin_type=skin_type,
+        budget=budget,
+        use_atomspace=True
+    )
+    
+    print("🏆 INTEGRATED OPTIMIZATION RESULTS:")
+    print(f"   Integration Level: {integrated_results.get('integration_level', 'unknown')}")
+    print(f"   Total Cost: R{integrated_results.get('total_cost', 0):.2f}")
+    print(f"   Synergy Score: {integrated_results.get('synergy_score', 1.0):.2f}")
+    
+    if 'optimization_methods' in integrated_results:
+        methods = integrated_results['optimization_methods']
+        print(f"   Methods Used: {', '.join(methods)}")
+    
+    # Display AtomSpace analysis if available
+    if 'atomspace_analysis' in integrated_results:
+        analysis = integrated_results['atomspace_analysis']
+        print("\n🔬 AtomSpace Reasoning Analysis:")
+        
+        if 'relationship_analysis' in analysis:
+            rel_analysis = analysis['relationship_analysis']
+            print(f"   • Total ingredients analyzed: {rel_analysis.get('total_ingredients', 0)}")
+            print(f"   • Synergistic pairs found: {rel_analysis.get('synergistic_pairs', 0)}")
+            print(f"   • Incompatible pairs detected: {rel_analysis.get('incompatible_pairs', 0)}")
+        
+        if 'property_analysis' in analysis:
+            prop_analysis = analysis['property_analysis']
+            print(f"   • Ingredients with property analysis: {len(prop_analysis)}")
+            
+            # Show details for first ingredient
+            if prop_analysis:
+                first_ingredient = list(prop_analysis.keys())[0]
+                details = prop_analysis[first_ingredient]
+                print(f"   • Example - {first_ingredient}:")
+                print(f"     Class: {details.get('class', 'unknown')}")
+                print(f"     Score: {details.get('score', 0):.2f}")
+                partners = details.get('synergistic_partners', [])
+                print(f"     Synergistic partners: {len(partners)}")
+    
+    print()
+    
+    # Step 5: Performance comparison
+    print("STEP 5: Performance Comparison")
+    print("-" * 40)
+    
+    print("Comparison of optimization approaches:")
+    print(f"{'Method':<25} {'Cost':<10} {'Synergy':<10} {'Features'}")
+    print("-" * 65)
+    
+    atomspace_cost = atomspace_results.get('total_cost', 0)
+    atomspace_synergy = atomspace_results.get('synergy_score', 1.0)
+    integrated_cost = integrated_results.get('total_cost', 0)
+    integrated_synergy = integrated_results.get('synergy_score', 1.0)
+    
+    print(f"{'AtomSpace-Enhanced':<25} R{atomspace_cost:<9.2f} {atomspace_synergy:<9.2f} Pattern matching, semantic queries")
+    print(f"{'Integrated Optimizer':<25} R{integrated_cost:<9.2f} {integrated_synergy:<9.2f} ML + symbolic reasoning")
+    
+    print()
+    print("✅ Deep AtomSpace integration demonstration completed!")
+    print()
+    print("🔬 KEY INTEGRATION FEATURES DEMONSTRATED:")
+    print("   ✓ AtomSpace knowledge representation of hypergredients")
+    print("   ✓ Pattern-based ingredient compatibility reasoning")
+    print("   ✓ Semantic queries for optimal ingredient selection")
+    print("   ✓ Bidirectional data flow between systems")  
+    print("   ✓ Advanced constraint satisfaction with symbolic reasoning")
+    print("   ✓ Performance comparison of optimization approaches")
+    
+    return {
+        'atomspace_results': atomspace_results,
+        'integrated_results': integrated_results,
+        'demo_completed': True
+    }
+
 if __name__ == "__main__":
-    create_integrated_optimization_demo()
+    # Run comprehensive demonstrations
+    print("🧬 HYPERGREDIENT INTEGRATION DEMONSTRATIONS")
+    print("=" * 70)
+    print()
+    
+    # Standard integration demo
+    print("1️⃣ STANDARD HYPERGREDIENT INTEGRATION")
+    print("-" * 45)
+    standard_results = create_integrated_optimization_demo()
+    
+    print("\n" + "="*70 + "\n")
+    
+    # Deep AtomSpace integration demo  
+    print("2️⃣ DEEP ATOMSPACE INTEGRATION")
+    print("-" * 35)
+    deep_results = create_deep_atomspace_integration_demo()
+    
+    print("\n" + "="*70)
+    print("🎉 ALL INTEGRATION DEMONSTRATIONS COMPLETED SUCCESSFULLY!")
+    print("="*70)
