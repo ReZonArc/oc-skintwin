@@ -259,34 +259,6 @@ class AttentionAllocationManager:
                 # Bound the values
                 node.attention_value.short_term_importance = min(1.0, max(0.1, 
                     node.attention_value.short_term_importance))
-            desired_allocation = priority * self.total_budget
-            
-            # Apply cost constraint
-            max_affordable = remaining_budget / node.processing_cost
-            actual_allocation = min(desired_allocation, max_affordable)
-            
-            if actual_allocation > 0.01:  # Minimum threshold
-                allocations[node_id] = actual_allocation
-                remaining_budget -= actual_allocation * node.processing_cost
-                
-                # Activate the node
-                node.activate(actual_allocation)
-        
-        # Update metrics
-        self.used_budget = self.total_budget - remaining_budget
-        self.allocation_history.append({
-            'timestamp': time.time(),
-            'allocations': allocations.copy(),
-            'efficiency': self._calculate_allocation_efficiency(allocations)
-        })
-        
-        # Apply Hebbian learning
-        self._apply_hebbian_learning(allocations)
-        
-        # Decay attention values
-        self._apply_attention_decay()
-        
-        return allocations
     
     def _update_attention_from_feedback(self, feedback: Dict[str, float]):
         """Update attention values based on performance feedback"""
